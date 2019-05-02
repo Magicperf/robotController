@@ -8,19 +8,26 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PreDestroy;
+
 @Service
 @Component
 public class RobotServiceImpl implements RobotService {
     private static final Logger logger = LoggerFactory.getLogger(RobotServiceImpl.class);
 
     final GpioController gpio = GpioFactory.getInstance();
-    final GpioPinDigitalOutput frontLeftWheel = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_07, "frontLeftWheel", PinState.LOW);
-    final GpioPinDigitalOutput frontRightWheel = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_11, "frontRightWheel", PinState.LOW);
-    final GpioPinDigitalOutput rearLeftWheel = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_13, "rearLeftWheel", PinState.LOW);
-    final GpioPinDigitalOutput rearRightWheel = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_15, "readRightWheel", PinState.LOW);
+    final GpioPinDigitalOutput pin7 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_07, PinState.LOW);
+    final GpioPinDigitalOutput pin11 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_11, PinState.LOW);
+    final GpioPinDigitalOutput pin13 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_13, PinState.LOW);
+    final GpioPinDigitalOutput pin15 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_15, PinState.LOW);
 
     @Override
     public void move(String command, Long time){
+        pin7.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
+        pin11.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
+        pin13.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
+        pin15.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
+
         logger.info("Starting move for command: " + command);
         if(time == null){
             logger.error("Time is null!");
@@ -50,44 +57,52 @@ public class RobotServiceImpl implements RobotService {
     }
 
     private void forward(Long time){
-        frontRightWheel.low();
-        rearLeftWheel.low();
-        frontLeftWheel.pulse(time,true);
-        rearRightWheel.pulse(time,true);
+        pin11.low();
+        pin13.low();
+        pin7.pulse(time,false);
+        pin15.pulse(time,false);
     }
 
     private void reverse(Long time){
-        frontLeftWheel.low();
-        rearRightWheel.low();
-        frontRightWheel.pulse(time,true);
-        rearLeftWheel.pulse(time,true);
+        pin7.low();
+        pin15.low();
+        pin11.pulse(time,false);
+        pin13.pulse(time,false);
     }
 
     private void turnLeft(Long time){
-        rearRightWheel.low();
-        frontLeftWheel.pulse(time,true);
-        frontRightWheel.pulse(time,true);
-        rearLeftWheel.pulse(time,true);
+        pin15.low();
+        pin7.pulse(time,false);
+        pin11.pulse(time,false);
+        pin13.pulse(time,false);
     }
 
     private void turnRight(Long time){
-        frontLeftWheel.low();
-        frontRightWheel.low();
-        rearLeftWheel.low();
-        rearRightWheel.pulse(time,true);
+        pin7.low();
+        pin11.low();
+        pin13.low();
+        pin15.pulse(time,false);
     }
 
     private void pivotLeft(Long time){
-        frontRightWheel.low();
-        rearRightWheel.low();
-        frontLeftWheel.pulse(time,true);
-        rearLeftWheel.pulse(time,true);
+        pin11.low();
+        pin15.low();
+        pin7.pulse(time,false);
+        pin13.pulse(time,false);
     }
 
     private void pivotRight(Long time){
-        frontLeftWheel.low();
-        rearLeftWheel.low();
-        frontRightWheel.pulse(time,true);
-        rearRightWheel.pulse(time,true);
+        pin7.low();
+        pin13.low();
+        pin11.pulse(time,false);
+        pin15.pulse(time,false);
+    }
+
+    @PreDestroy
+    public void destroy(){
+        logger.info("Destroy called...shutting down");
+        gpio.shutdown();
+        while(!gpio.isShutdown()){}
+        logger.info("GPIO is shutdown");
     }
 }
