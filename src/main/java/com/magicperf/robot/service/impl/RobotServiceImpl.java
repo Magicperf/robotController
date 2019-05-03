@@ -16,17 +16,17 @@ public class RobotServiceImpl implements RobotService {
     private static final Logger logger = LoggerFactory.getLogger(RobotServiceImpl.class);
 
     final GpioController gpio = GpioFactory.getInstance();
-    final GpioPinDigitalOutput pin7 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_07, PinState.LOW);
-    final GpioPinDigitalOutput pin11 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_11, PinState.LOW);
-    final GpioPinDigitalOutput pin13 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_13, PinState.LOW);
-    final GpioPinDigitalOutput pin15 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_15, PinState.LOW);
+    final GpioPinDigitalOutput input3 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_07, PinState.LOW);
+    final GpioPinDigitalOutput input4 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_11, PinState.LOW);
+    final GpioPinDigitalOutput input2 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_13, PinState.LOW);
+    final GpioPinDigitalOutput input1 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_15, PinState.LOW);
 
     @Override
     public void move(String command, Long time){
-        pin7.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
-        pin11.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
-        pin13.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
-        pin15.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
+        input3.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
+        input4.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
+        input2.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
+        input1.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
 
         logger.info("Starting move for command: " + command);
         if(time == null){
@@ -57,45 +57,45 @@ public class RobotServiceImpl implements RobotService {
     }
 
     private void forward(Long time){
-        pin11.low();
-        pin13.low();
-        pin7.pulse(time,false);
-        pin15.pulse(time,false);
+        input4.low();
+        input2.low();
+        input3.pulse(time,false);
+        input1.pulse(time,false);
     }
 
     private void reverse(Long time){
-        pin7.low();
-        pin15.low();
-        pin11.pulse(time,false);
-        pin13.pulse(time,false);
+        input3.low();
+        input1.low();
+        input4.pulse(time,false);
+        input2.pulse(time,false);
     }
 
     private void turnLeft(Long time){
-        pin15.low();
-        pin7.pulse(time,false);
-        pin11.pulse(time,false);
-        pin13.pulse(time,false);
+        input1.low();
+        input2.low();
+        input4.low();
+        input3.pulse(time,false);
     }
 
     private void turnRight(Long time){
-        pin7.low();
-        pin11.low();
-        pin13.low();
-        pin15.pulse(time,false);
+        input2.low();
+        input3.low();
+        input4.low();
+        input1.pulse(time,false);
     }
 
     private void pivotLeft(Long time){
-        pin11.low();
-        pin15.low();
-        pin7.pulse(time,false);
-        pin13.pulse(time,false);
+        input4.low();
+        input1.low();
+        input3.pulse(time,false);
+        input2.pulse(time,false);
     }
 
     private void pivotRight(Long time){
-        pin7.low();
-        pin13.low();
-        pin11.pulse(time,false);
-        pin15.pulse(time,false);
+        input3.low();
+        input2.low();
+        input4.pulse(time,false);
+        input1.pulse(time,false);
     }
 
     @PreDestroy
