@@ -1,5 +1,6 @@
 package com.magicperf.robot.service;
 
 public interface RobotService {
-    void move(String command, Long time);
+    void executeMove(String command, Long time);
+    void enableAuto();
 }

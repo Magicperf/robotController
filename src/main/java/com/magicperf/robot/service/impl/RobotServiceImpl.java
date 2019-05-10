@@ -23,6 +23,8 @@ public class RobotServiceImpl implements RobotService {
 
     private ExecutorService executorService;
 
+    private Boolean autoEnabled;
+
     final GpioController gpio = GpioFactory.getInstance();
     final GpioPinDigitalOutput input3 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_07, PinState.LOW);
     final GpioPinDigitalOutput input4 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_11, PinState.LOW);
@@ -30,9 +32,14 @@ public class RobotServiceImpl implements RobotService {
     final GpioPinDigitalOutput input1 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_15, PinState.LOW);
     final GpioPinDigitalInput irInput1 = gpio.provisionDigitalInputPin(RaspiPin.GPIO_16, PinPullResistance.PULL_UP);
     final GpioPinDigitalInput irInput2 = gpio.provisionDigitalInputPin(RaspiPin.GPIO_04, PinPullResistance.PULL_UP);
+    final GpioPinDigitalInput irInput3 = gpio.provisionDigitalInputPin(RaspiPin.GPIO_05, PinPullResistance.PULL_UP);
+    final GpioPinDigitalInput irInput4 = gpio.provisionDigitalInputPin(RaspiPin.GPIO_06, PinPullResistance.PULL_UP);
+    final GpioPinDigitalInput irInput5 = gpio.provisionDigitalInputPin(RaspiPin.GPIO_23, PinPullResistance.PULL_UP);
+    final GpioPinDigitalInput irInput6 = gpio.provisionDigitalInputPin(RaspiPin.GPIO_25, PinPullResistance.PULL_UP);
 
     @PostConstruct
     public void init(){
+        autoEnabled = false;
         executorService = Executors.newFixedThreadPool(2);
         input3.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
         input4.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
@@ -44,89 +51,131 @@ public class RobotServiceImpl implements RobotService {
         irInput1.addListener(new GpioPinListenerDigital(){
             @Override
             public void handleGpioPinDigitalStateChangeEvent(GpioPinDigitalStateChangeEvent gpioPinDigitalStateChangeEvent) {
-                reverse(Long.valueOf(250));
+                turnLeft();
+                try {
+                    Thread.sleep(250);
+                }catch(Exception e){
+                    logger.error(e.getMessage());
+                }
+                resetPins();
             }
         });
         irInput2.addListener(new GpioPinListenerDigital(){
             @Override
             public void handleGpioPinDigitalStateChangeEvent(GpioPinDigitalStateChangeEvent gpioPinDigitalStateChangeEvent) {
-                forward(Long.valueOf(250));
+                turnRight();
+                try {
+                    Thread.sleep(250);
+                }catch(Exception e){
+                    logger.error(e.getMessage());
+                }
             }
         });
+        executorService.submit(new PlaySound("Protoss/Units/Dragoon/pdrwht01.wav"));
     }
 
     @Override
-    public void move(String command, Long time){
+    public void executeMove(String command, Long time){
+        if(autoEnabled){
+            return;
+        }
         logger.info("Starting move for command: " + command);
         if(time == null){
             logger.error("Time is null!");
+            executorService.submit(new PlaySound("Protoss/Units/Dragoon/pdrwht02.wav"));
             return;
         }
+        String wavFilePath = null;
         if(StringUtils.equalsIgnoreCase(command,"W")){
             logger.info("Moving forward for: " + time);
-            forward(time);
-            executorService.submit(new PlaySound("Marine_Attack00.wav"));
+            forward();
+            wavFilePath = "Protoss/Units/Dragoon/pdrwht05.wav";
         }else if(StringUtils.equalsIgnoreCase(command,"S")){
             logger.info("Moving reverse for: " + time);
-            reverse(time);
+            reverse();
+            wavFilePath = "Protoss/Units/Dragoon/pdrwht06.wav";
         }else if(StringUtils.equalsIgnoreCase(command,"A")){
             logger.info("Turning left for: " + time);
-            turnLeft(time);
+            turnLeft();
+            wavFilePath = "Protoss/Units/Dragoon/pdrwht07.wav";
         }else if(StringUtils.equalsIgnoreCase(command,"D")){
             logger.info("Turning right for: " + time);
-            turnRight(time);
+            turnRight();
+            wavFilePath = "Protoss/Units/Dragoon/pdryes01.wav";
         }else if(StringUtils.equalsIgnoreCase(command,"Q")){
             logger.info("Pivot left for: " + time);
-            pivotLeft(time);
+            pivotLeft();
+            wavFilePath = "Protoss/Units/Dragoon/Marine_Attack00.wav";
         }else if(StringUtils.equalsIgnoreCase(command,"E")){
             logger.info("Pivot right for: " + time);
-            pivotRight(time);
+            pivotRight();
+            wavFilePath = "Protoss/Units/Dragoon/Marine_Attack00.wav";
         }else{
             logger.error("No Command recognized!: " + command);
             return;
         }
+        try {
+            Thread.sleep(time);
+            resetPins();
+        }catch(Exception e){
+            logger.error(e.getMessage());
+        }
+        executorService.submit(new PlaySound(wavFilePath));
     }
 
-    private void forward(Long time){
+    @Override
+    public void enableAuto() {
+        this.autoEnabled = true;
+        forward();
+    }
+
+    private void forward(){
         input4.low();
         input2.low();
-        input3.pulse(time,false);
-        input1.pulse(time,false);
+        input3.high();
+        input1.high();
     }
 
-    private void reverse(Long time){
+    private void reverse(){
         input3.low();
         input1.low();
-        input4.pulse(time,false);
-        input2.pulse(time,false);
+        input4.high();
+        input2.high();
     }
 
-    private void turnLeft(Long time){
+    private void turnLeft(){
         input1.low();
         input2.low();
         input4.low();
-        input3.pulse(time,false);
+        input3.high();
     }
 
-    private void turnRight(Long time){
+    private void turnRight(){
         input2.low();
         input3.low();
         input4.low();
-        input1.pulse(time,false);
+        input1.high();
     }
 
-    private void pivotLeft(Long time){
+    private void pivotLeft(){
         input4.low();
         input1.low();
-        input3.pulse(time,false);
-        input2.pulse(time,false);
+        input3.high();
+        input2.high();
     }
 
-    private void pivotRight(Long time){
+    private void pivotRight(){
         input3.low();
         input2.low();
-        input4.pulse(time,false);
-        input1.pulse(time,false);
+        input4.high();
+        input1.high();
+    }
+
+    private void resetPins(){
+        input1.low();
+        input2.low();
+        input3.low();
+        input4.low();
     }
 
     @PreDestroy
